@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Space Rocket - Chơi game</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { margin:0; overflow:hidden; background:#000; font-family:Arial; }
+    #game-container {
+      position: relative;
+      width: 400px;
+      height: 600px;
+      margin: 20px auto;
+      background: linear-gradient(to bottom, #0a001f, #1a0033, #000);
+      border: 5px solid var(--primary);
+      box-shadow: 0 0 40px rgba(13, 148, 136, 0.7);
+      overflow: hidden;
+    }
+    canvas { display: block; }
+    #start-screen, #game-over-screen {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      color: var(--primary-light);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      text-align: center;
+      z-index: 10;
+      text-shadow: 0 0 15px var(--accent);
+    }
+    #start-screen h1, #game-over-screen h1 {
+      font-size: 3.2rem;
+      margin: 0;
+      color: var(--accent);
+    }
+    #start-screen p, #game-over-screen p {
+      font-size: 1.4rem;
+      margin: 20px 0;
+    }
+    #score {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: #fff;
+      font-size: 2.2rem;
+      z-index: 5;
+      text-shadow: 0 0 10px #000;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <canvas id="c" width="400" height="600"></canvas>
+  <div id="start-screen">
+    <h1>SPACE ROCKET</h1>
+    <p>Nhấn SPACE để bắt đầu bay</p>
+    <p style="font-size:1.2rem; margin-top:40px;">Tránh trụ đá vũ trụ - Sống sót càng lâu càng tốt!</p>
+  </div>
+  <div id="game-over-screen" style="display:none;">
+    <h1>GAME OVER</h1>
+    <p id="final-score"></p>
+    <p>Nhấn SPACE để chơi lại</p>
+  </div>
+  <div id="score">0</div>
+</div>
+
+<a href="index.html" style="display:block; text-align:center; margin:30px; color:var(--accent); font-weight:bold;">← Về trang chủ</a>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const startScreen = document.getElementById('start-screen');
+const gameOverScreen = document.getElementById('game-over-screen');
+const finalScoreText = document.getElementById('final-score');
+const scoreDisplay = document.getElementById('score');
+
+let rocket = {
+  x: 100,
+  y: 300,
+  width: 40,
+  height: 60,
+  vel: 0,
+  gravity: 0.35,          // Rơi chậm hơn
+  thrust: -9.5,           // Nhảy thấp hơn (giảm lực đẩy)
+  angle: 0
+};
+let rocks = [];
+let score = 0;
+let gameStarted = false;
+let gameOver = false;
+let particles = [];     // sao rơi
+let fireParticles = []; // lửa đuôi tàu
+
+// Tạo sao rơi nền
+function createStars() {
+  for (let i = 0; i < 100; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 2 + 0.5,
+      speed: Math.random() * 0.8 + 0.2
+    });
+  }
+}
+
+// Sinh trụ đá
+function spawnRock() {
+  const gap = 220;
+  const topHeight = Math.random() * (canvas.height - gap - 250) + 120;
+  rocks.push({
+    x: canvas.width,
+    top: topHeight,
+    bottom: topHeight + gap,
+    width: 80,
+    passed: false
+  });
+}
+
+function update() {
+  if (!gameStarted || gameOver) return;
+
+  rocket.vel += rocket.gravity;
+  rocket.y += rocket.vel;
+
+  // Cập nhật góc nghiêng (chếch lên 45 độ khi bay lên)
+  if (rocket.vel < 0) {
+    rocket.angle = Math.min(rocket.angle + 0.08, Math.PI / 4);
+  } else {
+    rocket.angle = Math.max(rocket.angle - 0.05, 0);
+  }
+
+  // Va chạm biên
+  if (rocket.y + rocket.height > canvas.height || rocket.y < -rocket.height) {
+    gameOver = true;
+  }
+
+  // Tốc độ trụ đá tăng dần theo điểm số
+  const speed = 2.8 + (score / 20) * 0.8; // Tăng độ khó dần
+
+  rocks.forEach((rock, index) => {
+    rock.x -= speed;
+
+    // Va chạm
+    if (
+      rocket.x + rocket.width > rock.x &&
+      rocket.x < rock.x + rock.width &&
+      (rocket.y < rock.top || rocket.y + rocket.height > rock.bottom)
+    ) {
+      gameOver = true;
+    }
+
+    // Tính điểm
+    if (!rock.passed && rock.x + rock.width < rocket.x) {
+      rock.passed = true;
+      score++;
+      scoreDisplay.textContent = score;
+    }
+
+    if (rock.x + rock.width < 0) rocks.splice(index, 1);
+  });
+
+  // Sinh trụ mới
+  if (rocks.length === 0 || rocks[rocks.length - 1].x < canvas.width - 280) {
+    spawnRock();
+  }
+
+  // Sao rơi
+  particles.forEach(p => {
+    p.y += p.speed;
+    if (p.y > canvas.height) p.y = 0;
+  });
+
+  // Lửa đuôi tàu
+  if (rocket.vel < 0) {
+    for (let i = 0; i < 4; i++) {
+      fireParticles.push({
+        x: rocket.x + rocket.width / 2 + (Math.random() - 0.5) * 20,
+        y: rocket.y + rocket.height,
+        size: Math.random() * 10 + 8,
+        speedY: Math.random() * 4 + 3,
+        life: 35 + Math.random() * 25
+      });
+    }
+  }
+  fireParticles = fireParticles.filter(p => {
+    p.y += p.speedY;
+    p.life--;
+    p.size *= 0.94;
+    return p.life > 0;
+  });
+}
+
+function drawRocket() {
+  ctx.save();
+  ctx.translate(rocket.x + rocket.width / 2, rocket.y + rocket.height / 2);
+  ctx.rotate(rocket.angle);
+
+  // Thân tàu trắng bạc
+  ctx.fillStyle = '#e0e0e0';
+  ctx.beginPath();
+  ctx.moveTo(0, -rocket.height / 2); // mũi
+  ctx.lineTo(-rocket.width / 2, rocket.height / 2);
+  ctx.lineTo(rocket.width / 2, rocket.height / 2);
+  ctx.closePath();
+  ctx.fill();
+
+  // Mũi đỏ
+  ctx.fillStyle = '#ff4444';
+  ctx.beginPath();
+  ctx.moveTo(0, -rocket.height / 2);
+  ctx.lineTo(-rocket.width / 3, -rocket.height / 3.5);
+  ctx.lineTo(rocket.width / 3, -rocket.height / 3.5);
+  ctx.closePath();
+  ctx.fill();
+
+  // Vòng cam
+  ctx.fillStyle = '#ff8800';
+  ctx.beginPath();
+  ctx.arc(0, 0, rocket.width / 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Cửa sổ xanh
+  ctx.fillStyle = '#00ccff';
+  ctx.beginPath();
+  ctx.arc(0, -rocket.height / 5, rocket.width / 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Lửa đuôi động
+  fireParticles.forEach(p => {
+    ctx.globalAlpha = p.life / 60;
+    ctx.fillStyle = `hsl(${20 + Math.random() * 40}, 100%, ${50 + Math.random() * 30}%)`;
+    ctx.beginPath();
+    ctx.arc(p.x - rocket.x - rocket.width / 2, p.y - rocket.y - rocket.height / 2, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  ctx.restore();
+}
+
+function drawRocks() {
+  rocks.forEach(rock => {
+    // Trụ đá trên
+    ctx.fillStyle = '#8b5a2b';
+    ctx.strokeStyle = '#5c4033';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.rect(rock.x, 0, rock.width, rock.top);
+    ctx.fill();
+    ctx.stroke();
+
+    // Texture sần sùi
+    ctx.strokeStyle = '#6d4c41';
+    for (let j = 10; j < rock.top; j += 15 + Math.random() * 10) {
+      ctx.beginPath();
+      ctx.moveTo(rock.x + Math.random() * rock.width, j);
+      ctx.lineTo(rock.x + Math.random() * rock.width, j + 12);
+      ctx.stroke();
+    }
+
+    // Trụ đá dưới
+    ctx.fillStyle = '#8b5a2b';
+    ctx.beginPath();
+    ctx.rect(rock.x, rock.bottom, rock.width, canvas.height - rock.bottom);
+    ctx.fill();
+    ctx.stroke();
+
+    for (let j = rock.bottom + 10; j < canvas.height; j += 15 + Math.random() * 10) {
+      ctx.beginPath();
+      ctx.moveTo(rock.x + Math.random() * rock.width, j);
+      ctx.lineTo(rock.x + Math.random() * rock.width, j + 12);
+      ctx.stroke();
+    }
+  });
+}
+
+function drawStars() {
+  ctx.fillStyle = '#ffffff';
+  particles.forEach(p => {
+    ctx.globalAlpha = Math.random() * 0.6 + 0.4;
+    ctx.fillRect(p.x, p.y, p.size, p.size);
+  });
+  ctx.globalAlpha = 1;
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawStars();
+
+  if (gameStarted && !gameOver) {
+    drawRocket();
+    drawRocks();
+  }
+
+  if (!gameStarted) {
+    drawRocket();
+  }
+
+  if (gameOver) {
+    gameOverScreen.style.display = 'flex';
+    finalScoreText.textContent = `Điểm: ${score}`;
+  }
+}
+
+function resetGame() {
+  rocket.y = 300;
+  rocket.vel = 0;
+  rocket.angle = 0;
+  rocks = [];
+  score = 0;
+  scoreDisplay.textContent = score;
+  gameOver = false;
+  gameStarted = false;
+  gameOverScreen.style.display = 'none';
+  startScreen.style.display = 'flex';
+  fireParticles = [];
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// Điều khiển
+document.addEventListener("keydown", e => {
+  if (e.code === "Space") {
+    e.preventDefault();
+    if (!gameStarted) {
+      gameStarted = true;
+      startScreen.style.display = 'none';
+      spawnRock();
+    } else if (gameOver) {
+      resetGame();
+    } else {
+      rocket.vel = rocket.thrust;
+    }
+  }
+});
+
+// Khởi động
+createStars();
+loop();
+</script>
+
+</body>
+</html>

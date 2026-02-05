@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Thư viện Media - Gallery (Lưu vĩnh viễn)</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Giữ nguyên style cũ của bạn, thêm chút cho đẹp */
+    .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+    .media-item { background: var(--bg-medium); border-radius: 12px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.4); transition: all 0.3s; cursor: pointer; }
+    .media-item:hover { transform: translateY(-8px); box-shadow: 0 15px 30px rgba(13, 148, 136, 0.4); }
+    .media-item img, .media-item video { width: 100%; height: 180px; object-fit: cover; }
+    .media-item .name { padding: 10px; font-size: 0.95rem; text-align: center; background: rgba(0,0,0,0.5); color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .controls { text-align: center; margin: 2rem 0; }
+    button { padding: 10px 20px; margin: 0 10px; border-radius: 8px; cursor: pointer; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; }
+    .modal-content { max-width: 90%; max-height: 90vh; text-align: center; position: relative; }
+    .modal img, .modal video, .modal audio { max-width: 100%; max-height: 80vh; border-radius: 12px; }
+    .close, .nav-btn { color: white; font-size: 2.5rem; cursor: pointer; position: absolute; }
+    .close { top: -40px; right: 20px; }
+    .prev { left: 20px; top: 50%; }
+    .next { right: 20px; top: 50%; }
+  </style>
+</head>
+<body>
+
+<h1>Thư viện Media</h1>
+
+<div class="upload-section" style="max-width:900px; margin:0 auto 2rem; text-align:center;">
+  <div class="upload-area" id="uploadArea" style="background:var(--bg-medium); border:3px dashed var(--primary); border-radius:16px; padding:50px; cursor:pointer;">
+    <label for="mediaFiles" style="font-size:1.3rem; color:var(--text-light); cursor:pointer;">
+      Nhấn hoặc kéo thả ảnh/video/nhạc (nhiều file cùng lúc)<br>
+      <small>Dữ liệu sẽ lưu lại sau reload/trở về trang chủ</small>
+    </label>
+    <input type="file" id="mediaFiles" accept="image/*,video/*,audio/*" multiple style="display:none;" />
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn-primary" id="clearAll">Xóa toàn bộ thư viện</button>
+</div>
+
+<div class="gallery" id="gallery"></div>
+
+<!-- Modal xem lớn + chuyển slide -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <span class="close" id="closeModal">&times;</span>
+    <div id="modalMedia"></div>
+    <div class="caption" id="caption" style="color:white; margin-top:15px;"></div>
+    <button class="nav-btn prev" id="prevBtn">&lt;</button>
+    <button class="nav-btn next" id="nextBtn">&gt;</button>
+  </div>
+</div>
+
+<script>
+let mediaList = JSON.parse(localStorage.getItem('mediaGallery')) || []; // Load từ localStorage khi mở trang
+let currentIndex = 0;
+
+const galleryDiv = document.getElementById('gallery');
+const modal = document.getElementById('modal');
+const modalMedia = document.getElementById('modalMedia');
+const caption = document.getElementById('caption');
+const closeModal = document.getElementById('closeModal');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const clearAllBtn = document.getElementById('clearAll');
+const mediaInput = document.getElementById('mediaFiles');
+const uploadArea = document.getElementById('uploadArea');
+
+// Load gallery khi trang mở
+renderGallery();
+
+// Thêm file mới (chuyển thành base64 để lưu)
+mediaInput.onchange = async (e) => {
+  await addFiles(e.target.files);
+};
+
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.style.borderColor = 'var(--accent)'; });
+uploadArea.addEventListener('dragleave', () => uploadArea.style.borderColor = 'var(--primary)');
+uploadArea.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  uploadArea.style.borderColor = 'var(--primary)';
+  await addFiles(e.dataTransfer.files);
+});
+
+async function addFiles(files) {
+  for (let file of files) {
+    if (!file.type.startsWith('image') && !file.type.startsWith('video') && !file.type.startsWith('audio')) continue;
+
+    const base64 = await fileToBase64(file); // Chuyển file thành base64
+    mediaList.push({
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      base64: base64,
+      timestamp: Date.now()
+    });
+  }
+  saveToStorage();
+  renderGallery();
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
+
+function saveToStorage() {
+  localStorage.setItem('mediaGallery', JSON.stringify(mediaList));
+}
+
+function renderGallery() {
+  galleryDiv.innerHTML = '';
+  mediaList.forEach((item, index) => {
+    let thumb = '';
+    if (item.type.startsWith('image')) {
+      thumb = `<img src="${item.base64}" alt="${item.name}">`;
+    } else if (item.type.startsWith('video')) {
+      thumb = `<video src="${item.base64}" muted></video>`;
+    } else {
+      thumb = `<div style="height:180px; background:#1e293b; display:flex; align-items:center; justify-content:center; color:#94a3b8;">
+                 Audio: ${item.name}
+               </div>`;
+    }
+
+    const div = document.createElement('div');
+    div.className = 'media-item';
+    div.innerHTML = thumb + `<div class="name">${item.name}</div>`;
+    div.onclick = () => openModal(index);
+    galleryDiv.appendChild(div);
+  });
+}
+
+function openModal(index) {
+  currentIndex = index;
+  showMedia();
+  modal.style.display = 'flex';
+}
+
+function showMedia() {
+  const item = mediaList[currentIndex];
+  let content = '';
+  if (item.type.startsWith('image')) {
+    content = `<img src="${item.base64}" alt="${item.name}">`;
+  } else if (item.type.startsWith('video')) {
+    content = `<video controls autoplay src="${item.base64}"></video>`;
+  } else {
+    content = `<audio controls autoplay src="${item.base64}"></audio>`;
+  }
+  modalMedia.innerHTML = content;
+  caption.textContent = `${item.name} (${(item.size / 1024 / 1024).toFixed(2)} MB) - ${currentIndex + 1}/${mediaList.length}`;
+}
+
+prevBtn.onclick = () => { if (currentIndex > 0) { currentIndex--; showMedia(); } };
+nextBtn.onclick = () => { if (currentIndex < mediaList.length - 1) { currentIndex++; showMedia(); } };
+closeModal.onclick = () => { modal.style.display = 'none'; };
+modal.onclick = e => { if (e.target === modal) closeModal.onclick(); };
+
+clearAllBtn.onclick = () => {
+  if (confirm('Xóa toàn bộ thư viện (không khôi phục được)?')) {
+    mediaList = [];
+    localStorage.removeItem('mediaGallery');
+    renderGallery();
+    modal.style.display = 'none';
+  }
+};
+</script>
+
+<a href="index.html" style="display:block; text-align:center; margin:40px 0; color:var(--accent); font-weight:bold;">← Về trang chủ</a>
+
+</body>
+</html>

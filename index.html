@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Võ Ngọc Quân – Website</title>
+  <!-- Font Awesome cho biểu tượng FB & IG chuẩn -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { font-family: Arial, sans-serif; margin:0; color:#333; }
+    header { background:#2c3e50; color:white; padding:20px; text-align:center; }
+    nav { background:#34495e; padding:10px; text-align:center; }
+    nav a { color:white; margin:0 20px; text-decoration:none; font-weight:bold; }
+    nav a:hover { color:#1abc9c; }
+    .container { max-width:900px; margin:30px auto; padding:40px 20px; background:white; border-radius:8px; box-shadow:0 2px 10px rgba(0,0,0,0.1); text-align:center; }
+    
+    /* Phần giới thiệu kiểu Instagram */
+    .profile-pic {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 5px solid #e1306c; /* Viền hồng Instagram */
+      box-shadow: 0 8px 25px rgba(225, 48, 108, 0.4);
+      margin-bottom: 20px;
+    }
+    .profile-name { font-size: 2.2rem; color: var(--primary-light); margin: 10px 0; }
+    .profile-bio { font-size: 1.1rem; color: var(--text-muted); margin-bottom: 20px; }
+    .profile-info p { font-size: 1.1rem; margin: 8px 0; }
+
+    /* Social links nhỏ hơn, màu giống app thật */
+    .social-links {
+      margin: 30px 0;
+    }
+    .social-links a {
+      font-size: 2rem;
+      margin: 0 25px;
+      transition: all 0.3s;
+      text-decoration: none;
+    }
+    .social-links a:hover {
+      transform: scale(1.15);
+    }
+    .social-links .fab.fa-facebook-f { color: #1877f2; } /* Xanh FB */
+    .social-links .fab.fa-instagram { 
+      background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    footer {
+      text-align:center;
+      padding:20px;
+      background:#2c3e50;
+      color:white;
+      position:fixed;
+      bottom:0;
+      width:100%;
+    }
+    footer .social-icons a {
+      font-size: 1.6rem; /* Nhỏ hơn */
+      margin: 0 20px;
+      transition: color 0.3s, transform 0.3s;
+    }
+    footer .social-icons a:hover {
+      transform: scale(1.15);
+    }
+    footer .social-icons .fab.fa-facebook-f { color: #1877f2; }
+    footer .social-icons .fab.fa-instagram { 
+      background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  </style>
+</head>
+<body class="home-page" style="
+  background: linear-gradient(rgba(15, 23, 42, 0.75), rgba(30, 41, 59, 0.75)),
+              url('p1.jpg') center / cover no-repeat fixed;
+  background-attachment: fixed;
+">
+
+<header>
+  <h1>Xin chào! Đây là website cá nhân của tôi</h1>
+  <p>Trình bày đơn giản - chỉ dùng Notepad</p>
+</header>
+
+<nav>
+  <a href="index.html">Trang chủ</a>
+  <a href="ppt.html">Kho PowerPoint</a>
+  <a href="media.html">Thư viện Media</a>
+  <a href="blog.html">Blog & Bình luận</a>
+  <a href="game.html">Chơi game</a>
+</nav>
+
+<div class="container">
+  <!-- Ảnh đại diện kiểu Instagram -->
+  <img src="p3.jpg" alt="Võ Ngọc Quân" class="profile-pic">
+
+  <h2 class="profile-name">Võ Ngọc Quân</h2>
+  <p class="profile-bio">Sinh viên ĐH31LQG • Yêu lập trình & game</p>
+
+  <div class="profile-info">
+    <p><strong>Lớp:</strong> ĐH31LQG</p>
+    <p><strong>Sở thích:</strong> Lập trình web, chơi game, nghe nhạc</p>
+    <p><strong>Email:</strong> example@gmail.com</p>
+  </div>
+
+  <!-- Biểu tượng FB & IG ở phần giới thiệu -->
+  <div class="social-links">
+    <a href="https://web.facebook.com/vongocquan0209" target="_blank" title="Facebook">
+      <i class="fab fa-facebook-f"></i>
+    </a>
+    <a href="https://www.instagram.com/ngocq02_09/" target="_blank" title="Instagram">
+      <i class="fab fa-instagram"></i>
+    </a>
+  </div>
+
+  <h3 style="margin: 40px 0 20px; color: var(--primary-light);">Mục tiêu của website này</h3>
+  <ul style="list-style: none; padding: 0; max-width: 600px; margin: 0 auto; text-align: left;">
+    <li style="margin: 10px 0; font-size: 1.1rem;">• Lưu trữ bài tập PowerPoint</li>
+    <li style="margin: 10px 0; font-size: 1.1rem;">• Xem ảnh, nghe nhạc, xem phim ngay trên web</li>
+    <li style="margin: 10px 0; font-size: 1.1rem;">• Viết blog và tự bình luận</li>
+    <li style="margin: 10px 0; font-size: 1.1rem;">• Chơi Flappy Bird giải trí</li>
+  </ul>
+</div>
+
+<footer>
+  <div class="social-icons">
+    <a href="https://web.facebook.com/vongocquan0209" target="_blank" title="Facebook">
+      <i class="fab fa-facebook-f"></i>
+    </a>
+    <a href="https://www.instagram.com/ngocq02_09/" target="_blank" title="Instagram">
+      <i class="fab fa-instagram"></i>
+    </a>
+  </div>
+  © 2026 - Tạo bằng Notepad ♥
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kho PowerPoint - Xem trước trong web</title>
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    body { padding: 30px 20px; background: var(--bg-dark); min-height: 100vh; color: var(--text-light); }
+    h1 { color: var(--primary-light); text-align: center; text-shadow: 0 0 10px rgba(45,212,191,0.3); }
+    .upload-area {
+      background: var(--bg-medium);
+      border: 3px dashed var(--primary);
+      border-radius: 16px;
+      padding: 50px 30px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-bottom: 2rem;
+    }
+    .upload-area:hover { border-color: var(--accent); background: rgba(13,148,136,0.15); }
+    input[type="file"] { display: none; }
+    .upload-label { font-size: 1.3rem; color: var(--text-light); cursor: pointer; }
+    .file-list { max-width: 900px; margin: 0 auto; }
+    .file-item {
+      background: var(--bg-medium);
+      border-radius: 10px;
+      padding: 15px;
+      margin: 10px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+      border-left: 5px solid var(--accent);
+    }
+    .file-info { flex: 1; }
+    .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; margin-left: 10px; font-weight: bold; }
+    .btn-view { background: var(--primary); color: white; }
+    .btn-download { background: var(--success); color: white; }
+    .btn-delete { background: var(--danger); color: white; }
+    #previewContainer {
+      max-width: 1000px;
+      margin: 30px auto;
+      background: var(--bg-medium);
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      min-height: 600px;
+      position: relative;
+    }
+    .loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: var(--text-muted);
+      background: rgba(0,0,0,0.5);
+    }
+    iframe { width: 100%; height: 700px; border: none; border-radius: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>Kho PowerPoint</h1>
+
+<div class="upload-area" id="uploadArea">
+  <label for="pptFiles" class="upload-label">
+    Nhấn hoặc kéo thả file .pptx vào đây<br>
+    <small>Lưu vĩnh viễn - Xem trước ngay trong web (cần internet)</small>
+  </label>
+  <input type="file" id="pptFiles" accept=".pptx,.ppt" multiple />
+</div>
+
+<div class="file-list" id="fileList">
+  <h3>Danh sách bài PowerPoint</h3>
+  <p id="noFiles">Chưa có file nào. Hãy upload ngay!</p>
+</div>
+
+<div id="previewContainer">
+  <div class="loading">Chọn file để xem trước slide</div>
+</div>
+
+<a href="index.html" style="display:block; text-align:center; margin:40px 0; color:var(--accent); font-weight:bold;">← Về trang chủ</a>
+
+<script>
+let pptFiles = JSON.parse(localStorage.getItem('pptGallery')) || [];
+
+const fileInput = document.getElementById('pptFiles');
+const fileListDiv = document.getElementById('fileList');
+const noFilesP = document.getElementById('noFiles');
+const previewContainer = document.getElementById('previewContainer');
+const uploadArea = document.getElementById('uploadArea');
+
+// Load danh sách khi mở trang
+renderFileList();
+
+// Chọn file
+fileInput.onchange = async (e) => {
+  await addFiles(e.target.files);
+};
+
+// Kéo thả
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.style.borderColor = 'var(--accent)'; });
+uploadArea.addEventListener('dragleave', () => uploadArea.style.borderColor = 'var(--primary)');
+uploadArea.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  uploadArea.style.borderColor = 'var(--primary)';
+  await addFiles(e.dataTransfer.files);
+});
+
+async function addFiles(files) {
+  for (let file of files) {
+    if (!file.name.endsWith('.pptx') && !file.name.endsWith('.ppt')) continue;
+
+    const base64 = await fileToBase64(file);
+    pptFiles.push({
+      name: file.name,
+      size: file.size,
+      base64: base64,
+      timestamp: Date.now()
+    });
+  }
+  saveToStorage();
+  renderFileList();
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
+
+function saveToStorage() {
+  localStorage.setItem('pptGallery', JSON.stringify(pptFiles));
+}
+
+function renderFileList() {
+  if (pptFiles.length === 0) {
+    noFilesP.style.display = 'block';
+    return;
+  }
+
+  noFilesP.style.display = 'none';
+
+  let html = '';
+  pptFiles.forEach((file, index) => {
+    const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+    html += `
+      <div class="file-item">
+        <div class="file-info">
+          <strong>${file.name}</strong><br>
+          <small>Kích thước: ${sizeMB} MB | Ngày: ${new Date(file.timestamp).toLocaleString('vi-VN')}</small>
+        </div>
+        <div>
+          <button class="btn btn-view" onclick="viewPPT(${index})">Xem trước</button>
+          <button class="btn btn-download" onclick="downloadPPT(${index})">Tải về</button>
+          <button class="btn btn-delete" onclick="deletePPT(${index})">Xóa</button>
+        </div>
+      </div>
+    `;
+  });
+
+  fileListDiv.innerHTML = `<h3>Danh sách bài PowerPoint (${pptFiles.length} file)</h3>` + html;
+}
+
+function viewPPT(index) {
+  const file = pptFiles[index];
+  previewContainer.innerHTML = '<div class="loading">Đang tải slide... (cần internet)</div>';
+
+  // Tạo Blob từ Base64
+  const base64Data = file.base64.split(',')[1];
+  const byteCharacters = atob(base64Data);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+  const url = URL.createObjectURL(blob);
+
+  // Dùng Microsoft Office Viewer embed
+  const viewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+  previewContainer.innerHTML = `<iframe src="${viewerUrl}" allowfullscreen></iframe>`;
+}
+
+function downloadPPT(index) {
+  const file = pptFiles[index];
+  const link = document.createElement('a');
+  link.href = file.base64;
+  link.download = file.name;
+  link.click();
+}
+
+function deletePPT(index) {
+  if (confirm(`Xóa file "${pptFiles[index].name}"?`)) {
+    pptFiles.splice(index, 1);
+    saveToStorage();
+    renderFileList();
+    previewContainer.innerHTML = '<div class="loading">Chọn file để xem trước slide</div>';
+  }
+}
+</script>
+
+</body>
+</html>
